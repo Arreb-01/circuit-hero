@@ -2,10 +2,52 @@
 (function() {
   'use strict';
 
+  var params = new URLSearchParams(window.location.search);
+  var levelId = params.get('level') || '1-1';
+  var config = LevelConfig.get(levelId);
+
+  if (!config) {
+    window.location.href = 'story-map.html';
+    return;
+  }
+
+  // Set page title
+  document.title = config.id + ' ' + config.title + ' — Circuit Hero';
+
+  // Set header level info
+  var levelIdEl = document.getElementById('levelId');
+  if (levelIdEl) levelIdEl.textContent = 'LEVEL ' + config.id.toUpperCase();
+  var levelTitleEl = document.getElementById('levelTitle');
+  if (levelTitleEl) levelTitleEl.textContent = config.title;
+
+  // Set cutscene badge
+  var badgeEl = document.getElementById('cutsceneBadge');
+  if (badgeEl) badgeEl.textContent = config.briefing.cutsceneBadge;
+
+  // Set dialogue speaker
+  var speakerEl = document.getElementById('dialogueSpeaker');
+  if (speakerEl) speakerEl.textContent = config.briefing.dialogueSpeaker;
+
+  // Set goal text
+  var goalEl = document.getElementById('goalText');
+  if (goalEl) goalEl.innerHTML = '<strong>' + config.briefing.goalText + '</strong>';
+
+  // Set available parts pills
+  var pillsEl = document.getElementById('componentPills');
+  if (pillsEl) {
+    pillsEl.innerHTML = config.briefing.availableParts.map(function(p) {
+      return '<span class="comp-pill">' + p + '</span>';
+    }).join('');
+  }
+
+  // Set tip text
+  var tipEl = document.getElementById('tipText');
+  if (tipEl) tipEl.textContent = config.briefing.tipText;
+
   // Typewriter effect for dialogue
-  const dialogueEl = document.getElementById('dialogueText');
-  const fullText = "My night light stopped working! Can you help me fix it? Mochi is scared of the dark...";
-  let charIndex = 0;
+  var dialogueEl = document.getElementById('dialogueText');
+  var fullText = config.briefing.dialogueText;
+  var charIndex = 0;
 
   function typeWriter() {
     if (charIndex < fullText.length) {
@@ -21,7 +63,7 @@
   setTimeout(typeWriter, 800);
 
   // Skip dialogue with spacebar
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function(e) {
     if (e.code === 'Space') {
       e.preventDefault();
       if (charIndex < fullText.length) {
@@ -32,12 +74,12 @@
     }
   });
 
-  // Start button animation
-  const startBtn = document.getElementById('startBtn');
-  startBtn.addEventListener('click', (e) => {
+  // Start button
+  var startBtn = document.getElementById('startBtn');
+  startBtn.href = 'workbench.html?level=' + levelId;
+  startBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    // Store level start time for timer
     localStorage.setItem('ch_level_start', Date.now().toString());
-    window.location.href = 'workbench.html?level=1-1';
+    window.location.href = 'workbench.html?level=' + levelId;
   });
 })();

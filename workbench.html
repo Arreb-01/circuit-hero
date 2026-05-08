@@ -18,13 +18,13 @@
       <!-- Top Bar -->
       <div class="top-bar">
         <div class="top-left">
-          <a href="mission-briefing.html?level=1-1" class="btn btn-secondary btn-sm back-btn">
+          <a href="mission-briefing.html?level=1-1" class="btn btn-secondary btn-sm back-btn" id="backBtn">
             <img src="assets/icons/arrow-back.svg" alt="" width="14" height="14">
             Back
           </a>
           <div class="level-info">
-            <span class="level-id-badge pixel-label">1-1</span>
-            <span class="level-name-text">First Light</span>
+            <span class="level-id-badge pixel-label" id="levelIdBadge">1-1</span>
+            <span class="level-name-text" id="levelNameText">First Light</span>
           </div>
         </div>
         <div class="top-center">
@@ -174,18 +174,18 @@
       <div class="success-stars" id="resultStars"></div>
       <div class="success-dialogue" id="successDialogue"></div>
       <div class="knowledge-card" id="knowledgeCard">
-        <div class="knowledge-title">
+        <div class="knowledge-title" id="knowledgeTitle">
           <img src="assets/icons/logo-lightning.svg" alt="" width="16" height="16">
           Knowledge: Closed Circuit
         </div>
-        <ul class="knowledge-list">
+        <ul class="knowledge-list" id="knowledgeList">
           <li>Current flows from battery (+) terminal</li>
           <li>Passes through a load (like a bulb)</li>
           <li>Returns to battery (-) terminal</li>
           <li>This complete path is a "closed circuit"</li>
           <li>The circuit must be closed for current to flow</li>
         </ul>
-        <p class="knowledge-motto">Remember: electricity needs a complete loop!</p>
+        <p class="knowledge-motto" id="knowledgeMotto">Remember: electricity needs a complete loop!</p>
       </div>
       <div class="success-actions">
         <a href="story-map.html" class="btn btn-secondary">Back to Map</a>
@@ -194,6 +194,7 @@
     </div>
   </div>
 
+  <script src="js/data/level-config.js"></script>
   <script src="js/game/grid.js"></script>
   <script src="js/game/components.js"></script>
   <script src="js/game/drag-drop.js"></script>

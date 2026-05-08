@@ -38,6 +38,31 @@ const Components = (function() {
           '<div style="width:28px;height:14px;background:#A0A0A0;border:2px solid #5D4037;border-top:none;margin:0 auto;border-radius:0 0 4px 4px;"></div>' +
           '</div>';
       }
+    },
+    switch: {
+      id: 'switch',
+      name: 'Switch',
+      widthCells: 2,
+      heightCells: 1,
+      pixelWidth: 80,
+      pixelHeight: 44,
+      ports: [
+        { id: 'left', type: 'neutral', side: 'left', offsetX: -2, offsetY: 22 },
+        { id: 'right', type: 'neutral', side: 'right', offsetX: 82, offsetY: 22 }
+      ],
+      render: function() {
+        return '<div class="comp-body">' +
+          '<div style="width:70px;height:30px;background:linear-gradient(180deg,#C8BFA9,#A89B85);border:3px solid #5D4037;border-radius:6px;position:relative;margin:7px auto 0;">' +
+          '<div style="position:absolute;left:8px;top:14px;width:10px;height:10px;background:#8B7355;border-radius:50%;border:2px solid #5D4037;"></div>' +
+          '<div style="position:absolute;right:8px;top:14px;width:10px;height:10px;background:#8B7355;border-radius:50%;border:2px solid #5D4037;"></div>' +
+          '<svg class="switch-lever" style="position:absolute;left:12px;top:6px;" width="46" height="20" viewBox="0 0 46 20">' +
+          '<line x1="0" y1="14" x2="36" y2="4" stroke="#5D4037" stroke-width="4" stroke-linecap="round"/>' +
+          '<circle cx="36" cy="4" r="5" fill="#E74C3C" stroke="#5D4037" stroke-width="2"/>' +
+          '</svg>' +
+          '</div>' +
+          '<div class="switch-state-label" style="text-align:center;font-size:10px;font-weight:700;color:#E74C3C;margin-top:2px;">OFF</div>' +
+          '</div>';
+      }
     }
   };
 
@@ -57,7 +82,8 @@ const Components = (function() {
       def: def,
       col: col,
       row: row,
-      element: null
+      element: null,
+      switchClosed: false
     };
     placedComponents.push(comp);
     return comp;
@@ -149,8 +175,30 @@ const Components = (function() {
     }
   }
 
+  function setSwitchState(uid, closed) {
+    const comp = getByUid(uid);
+    if (!comp || comp.type !== 'switch') return;
+    comp.switchClosed = closed;
+    if (comp.element) {
+      const label = comp.element.querySelector('.switch-state-label');
+      if (closed) {
+        comp.element.classList.add('switch-closed');
+        if (label) { label.textContent = 'ON'; label.style.color = '#27AE60'; }
+      } else {
+        comp.element.classList.remove('switch-closed');
+        if (label) { label.textContent = 'OFF'; label.style.color = '#E74C3C'; }
+      }
+    }
+  }
+
+  function toggleSwitch(uid) {
+    const comp = getByUid(uid);
+    if (!comp || comp.type !== 'switch') return;
+    setSwitchState(uid, !comp.switchClosed);
+  }
+
   return {
     getDef, create, remove, getAll, getByUid, getByType, clearAll,
-    renderToDOM, updatePosition, setBulbLit, DEFS
+    renderToDOM, updatePosition, setBulbLit, setSwitchState, toggleSwitch, DEFS
   };
 })();

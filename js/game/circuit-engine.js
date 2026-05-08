@@ -76,13 +76,18 @@ const CircuitEngine = (function() {
       // Skip for battery — it's the source, not a pass-through
       const comp = Components.getByUid(uid);
       if (comp && comp.type !== 'battery') {
-        comp.def.ports.forEach(p => {
-          const pKey = uid + '.' + p.id;
-          if (!visited.has(pKey)) {
-            visited.add(pKey);
-            queue.push({ key: pKey, path: [...current.path, pKey] });
-          }
-        });
+        // Open switch blocks current flow
+        if (comp.type === 'switch' && !comp.switchClosed) {
+          // Switch is open — no internal connection
+        } else {
+          comp.def.ports.forEach(p => {
+            const pKey = uid + '.' + p.id;
+            if (!visited.has(pKey)) {
+              visited.add(pKey);
+              queue.push({ key: pKey, path: [...current.path, pKey] });
+            }
+          });
+        }
       }
 
       // Get wire connections
@@ -99,6 +104,11 @@ const CircuitEngine = (function() {
     }
 
     // No path found — open circuit
+    // Check if an open switch is the cause
+    const openSwitches = components.filter(function(c) { return c.type === 'switch' && !c.switchClosed; });
+    if (openSwitches.length > 0) {
+      return { status: 'open', message: 'Open circuit! The switch is open — click it to close, then try again.' };
+    }
     return { status: 'open', message: 'Open circuit! Current has no complete path from (+) to (-).' };
   }
 

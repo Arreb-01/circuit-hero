@@ -4,6 +4,8 @@ const DragDrop = (function() {
   let dragType = null;
   let ghostEl = null;
   let currentMoveComp = null;
+  let dragStartPos = null;
+  let didMove = false;
 
   function init() {
     // Panel item drag start
@@ -32,6 +34,7 @@ const DragDrop = (function() {
     // Check if battery is already placed
     if (dragType === 'battery' && Components.getByType('battery').length > 0) return;
     if (dragType === 'bulb' && Components.getByType('bulb').length > 0) return;
+    if (dragType === 'switch' && Components.getByType('switch').length > 0) return;
 
     isDragging = true;
     const pos = getEventPos(e);
@@ -53,6 +56,8 @@ const DragDrop = (function() {
     currentMoveComp = comp;
     isDragging = true;
     dragType = comp.type;
+    didMove = false;
+    dragStartPos = getEventPos(e);
 
     const pos = getEventPos(e);
     ghostEl = document.createElement('div');
@@ -72,6 +77,16 @@ const DragDrop = (function() {
     if (!isDragging || !ghostEl) return;
     e.preventDefault();
     const pos = getEventPos(e);
+
+    // Track if we actually moved (for click vs drag detection)
+    if (dragStartPos) {
+      const dx = pos.x - dragStartPos.x;
+      const dy = pos.y - dragStartPos.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        didMove = true;
+      }
+    }
+
     const def = Components.getDef(dragType);
     if (def) {
       ghostEl.style.left = (pos.x - def.pixelWidth / 2) + 'px';
@@ -82,6 +97,18 @@ const DragDrop = (function() {
   function onDragEnd(e) {
     if (!isDragging) return;
     isDragging = false;
+
+    // If we didn't actually move and it's a switch, treat as toggle click
+    if (!didMove && currentMoveComp && currentMoveComp.type === 'switch') {
+      Components.toggleSwitch(currentMoveComp.uid);
+      if (currentMoveComp.element) currentMoveComp.element.style.opacity = '1';
+      if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+      document.querySelectorAll('.component-item.dragging').forEach(function(i) { i.classList.remove('dragging'); });
+      dragType = null;
+      currentMoveComp = null;
+      dragStartPos = null;
+      return;
+    }
 
     const pos = getEventPos(e);
     const stageGrid = document.getElementById('stageGrid');
@@ -134,6 +161,8 @@ const DragDrop = (function() {
     if (ghostEl) { ghostEl.remove(); ghostEl = null; }
     document.querySelectorAll('.component-item.dragging').forEach(i => i.classList.remove('dragging'));
     dragType = null;
+    dragStartPos = null;
+    currentMoveComp = null;
   }
 
   function setupComponentDrag(comp) {
@@ -162,11 +191,18 @@ const DragDrop = (function() {
     const statusDot = document.getElementById('statusDot');
 
     if (comps.length < 2) {
-      statusText.textContent = 'Drag a bulb from the parts panel onto the board.';
+      statusText.textContent = 'Drag components from the parts panel onto the board.';
     } else if (wires.length < 2) {
       statusText.textContent = 'Circuit open — wire up both terminals to complete the loop.';
     } else {
-      statusText.textContent = 'Ready to test — click Power On!';
+      // Check if there's a switch that's open
+      const switches = Components.getByType('switch');
+      const openSwitch = switches.find(function(s) { return !s.switchClosed; });
+      if (openSwitch) {
+        statusText.textContent = 'Switch is open — click it to close, then power on!';
+      } else {
+        statusText.textContent = 'Ready to test — click Power On!';
+      }
       statusDot.classList.add('connected');
     }
   }

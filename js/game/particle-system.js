@@ -44,53 +44,23 @@ const ParticleSystem = (function() {
   }
 
   function buildPath(result) {
-    const points = [];
-    const wires = Wiring.getAll();
-    const battery = result.battery;
-    const bulb = result.bulb;
+    var points = [];
+    if (!result.path) return points;
 
-    // Get wire path: battery pos -> bulb -> battery neg
-    const posWires = Wiring.getPortConnections(battery.uid, 'pos');
-    const negWires = Wiring.getPortConnections(battery.uid, 'neg');
-
-    // Find which wire connects battery pos to bulb
-    let buldEntryPort = null;
-    for (const w of posWires) {
-      const otherUid = w.fromUid === battery.uid ? w.toUid : w.fromUid;
-      if (otherUid === bulb.uid) {
-        buldEntryPort = w.fromUid === battery.uid ? w.toPortId : w.fromPortId;
-        const from = Wiring.getPortPosition(battery.uid, 'pos');
-        const to = Wiring.getPortPosition(bulb.uid, buldEntryPort);
-        if (from && to) {
-          points.push(from);
-          points.push({ x: (from.x + to.x) / 2, y: from.y });
-          points.push({ x: (from.x + to.x) / 2, y: to.y });
-          points.push(to);
+    for (var i = 0; i < result.path.length; i++) {
+      var parts = result.path[i].split('.');
+      var uid = parts[0];
+      var portId = parts[1];
+      var pos = Wiring.getPortPosition(uid, portId);
+      if (pos) {
+        if (points.length > 0) {
+          var prev = points[points.length - 1];
+          points.push({ x: (prev.x + pos.x) / 2, y: prev.y });
+          points.push({ x: (prev.x + pos.x) / 2, y: pos.y });
         }
+        points.push(pos);
       }
     }
-
-    // Find bulb exit port
-    const bulbPorts = bulb.def.ports;
-    const exitPort = bulbPorts.find(p => p.id !== buldEntryPort);
-    if (exitPort) {
-      const bulbExit = Wiring.getPortPosition(bulb.uid, exitPort.id);
-
-      // Wire from bulb exit to battery neg
-      for (const w of negWires) {
-        const otherUid = w.fromUid === battery.uid ? w.toUid : w.fromUid;
-        if (otherUid === bulb.uid) {
-          const to = Wiring.getPortPosition(battery.uid, 'neg');
-          if (bulbExit && to) {
-            points.push(bulbExit);
-            points.push({ x: (bulbExit.x + to.x) / 2, y: bulbExit.y });
-            points.push({ x: (bulbExit.x + to.x) / 2, y: to.y });
-            points.push(to);
-          }
-        }
-      }
-    }
-
     return points;
   }
 

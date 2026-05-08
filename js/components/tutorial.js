@@ -1,12 +1,19 @@
-// Sparky tutorial engine for Level 1-1
+// Sparky tutorial engine
 const Tutorial = (function() {
-  let currentStep = -1;
-  let active = false;
-  let steps = [];
-  let waitingForEvent = false;
+  var currentStep = -1;
+  var active = false;
+  var steps = [];
+  var waitingForEvent = false;
 
   function init(levelId) {
-    if (levelId !== '1-1') return;
+    if (levelId === '1-1') {
+      initFullTutorial();
+    } else if (levelId === '2-1') {
+      initHintsMode();
+    }
+  }
+
+  function initFullTutorial() {
     active = true;
 
     steps = [
@@ -18,7 +25,7 @@ const Tutorial = (function() {
       {
         text: 'First, drag the Bulb from the parts panel onto the workbench!',
         trigger: 'component-placed',
-        filter: (d) => d.type === 'bulb',
+        filter: function(d) { return d.type === 'bulb'; },
         highlight: 'bulbPanelItem'
       },
       {
@@ -45,7 +52,17 @@ const Tutorial = (function() {
     document.addEventListener('circuit:wire-connected', onEvent);
 
     // Start first step after a delay to let everything render
-    setTimeout(() => advance(), 800);
+    setTimeout(function() { advance(); }, 800);
+  }
+
+  function initHintsMode() {
+    active = true;
+    setTimeout(function() {
+      Feedback.showSparky(
+        'New part: the Switch! Drag it onto the board. Click a placed switch to toggle it open or closed. Wire it into the circuit, close it, and power on!',
+        'Got it!'
+      );
+    }, 800);
   }
 
   function advance() {
@@ -57,13 +74,13 @@ const Tutorial = (function() {
       return;
     }
 
-    const step = steps[currentStep];
+    var step = steps[currentStep];
     waitingForEvent = (step.trigger !== 'click' && step.trigger !== 'click-power');
 
     // Apply highlights
     clearHighlights();
     if (step.highlight) {
-      const el = document.getElementById(step.highlight);
+      var el = document.getElementById(step.highlight);
       if (el) el.classList.add('highlight');
     }
 
@@ -74,17 +91,16 @@ const Tutorial = (function() {
       highlightBatteryPort('neg');
     }
     if (step.highlight === 'powerBtn') {
-      const btn = document.getElementById('powerBtn');
+      var btn = document.getElementById('powerBtn');
       if (btn) btn.classList.add('highlight');
     }
 
     // Show the right button text
-    const btnText = step.trigger === 'click' ? 'I got it!' : 'OK';
-    const callback = () => {
+    var btnText = step.trigger === 'click' ? 'I got it!' : 'OK';
+    var callback = function() {
       if (step.trigger === 'click') {
         advance();
       }
-      // For 'click-power', the Sparky bubble just shows info — user clicks Power On separately
     };
 
     Feedback.showSparky(step.text, btnText, callback);
@@ -92,7 +108,7 @@ const Tutorial = (function() {
 
   function onEvent(e) {
     if (!active || currentStep < 0 || currentStep >= steps.length) return;
-    const step = steps[currentStep];
+    var step = steps[currentStep];
     if (e.type === 'circuit:' + step.trigger) {
       if (step.filter && !step.filter(e.detail)) return;
       clearHighlights();
@@ -101,12 +117,12 @@ const Tutorial = (function() {
   }
 
   function highlightBatteryPort(portId) {
-    const batteries = Components.getByType('battery');
+    var batteries = Components.getByType('battery');
     if (batteries.length === 0) return;
-    const battery = batteries[0];
+    var battery = batteries[0];
     if (!battery.element) return;
-    const ports = battery.element.querySelectorAll('.port');
-    ports.forEach(p => {
+    var ports = battery.element.querySelectorAll('.port');
+    ports.forEach(function(p) {
       if (p.dataset.portId === portId) {
         p.classList.add('highlight');
       }
@@ -114,12 +130,12 @@ const Tutorial = (function() {
   }
 
   function clearHighlights() {
-    document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    document.querySelectorAll('.highlight').forEach(function(el) { el.classList.remove('highlight'); });
   }
 
   function onPowerClick() {
     if (!active || currentStep < 0 || currentStep >= steps.length) return;
-    const step = steps[currentStep];
+    var step = steps[currentStep];
     if (step.trigger === 'click-power') {
       clearHighlights();
       advance();

@@ -250,6 +250,10 @@
   height: 100%;
 }
 
+#gridCanvas, #particleCanvas {
+  pointer-events: none;
+}
+
 #componentsLayer {
   position: absolute;
   top: 0;
@@ -281,6 +285,11 @@
   cursor: pointer;
   z-index: 5;
   transition: all 0.2s;
+  /* Enlarge clickable area without changing visual size */
+  padding: 4px;
+  margin: -4px;
+  box-sizing: content-box;
+  background-clip: content-box;
 }
 
 .placed-component .port:hover {
@@ -292,6 +301,43 @@
   background: var(--color-gold);
   box-shadow: 0 0 10px rgba(255,215,0,0.6);
   animation: port-pulse 0.8s ease-in-out infinite;
+}
+
+/* Port is the starting point of a wire being drawn */
+.placed-component .port.drawing-from {
+  background: #FF8C42;
+  box-shadow: 0 0 12px rgba(255,140,66,0.7);
+  transform: scale(1.4);
+}
+
+/* Port is a valid target for wire connection */
+.placed-component .port.wire-target {
+  background: #5D4037;
+  border-color: #FF8C42;
+  animation: target-breathe 1.2s ease-in-out infinite;
+}
+
+.placed-component .port.wire-target.hover-target {
+  background: #FF8C42;
+  transform: scale(1.5);
+  box-shadow: 0 0 16px rgba(255,140,66,0.8);
+  animation: none;
+}
+
+@keyframes target-breathe {
+  0%, 100% { box-shadow: 0 0 4px rgba(255,140,66,0.3); border-color: #FF8C42; }
+  50% { box-shadow: 0 0 10px rgba(255,140,66,0.6); border-color: #FFB347; }
+}
+
+/* Port has a wire connected */
+.placed-component .port.port-connected {
+  background: #7A6B5A;
+  border-color: #A0917E;
+}
+
+.placed-component .port.port-connected:hover {
+  background: #5D4037;
+  border-color: var(--color-text-primary);
 }
 
 @keyframes port-pulse {
@@ -704,4 +750,27 @@
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-2px); }
   75% { transform: translateX(2px); }
+}
+
+/* Switch Component */
+.switch-placed {
+  cursor: pointer;
+}
+
+.switch-lever {
+  transition: transform 0.2s ease;
+  transform-origin: 0px 14px;
+}
+
+.switch-placed:not(.switch-closed) .switch-lever {
+  transform: rotate(-30deg);
+}
+
+.switch-placed.switch-closed .switch-lever {
+  transform: rotate(0deg);
+}
+
+.switch-state-label {
+  user-select: none;
+  pointer-events: none;
 }
