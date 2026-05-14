@@ -22,7 +22,20 @@
   });
 
   // Login form submit
-  loginForm.addEventListener('submit', (e) => {
+  function storeUser(user) {
+    localStorage.setItem('ch_username', user.username);
+    if (user.email) localStorage.setItem('ch_email', user.email);
+    localStorage.setItem('ch_logged_in', 'true');
+  }
+
+  async function loadProgressAfterAuth() {
+    if (typeof ProgressStore !== 'undefined') {
+      await ProgressStore.loadRemoteProgress();
+    }
+  }
+
+  // Login form submit
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -32,13 +45,18 @@
       return;
     }
 
-    localStorage.setItem('ch_username', username);
-    localStorage.setItem('ch_logged_in', 'true');
-    window.location.href = 'story-map.html';
+    try {
+      const result = await ApiClient.login({ username, password });
+      storeUser(result.user);
+      await loadProgressAfterAuth();
+      window.location.href = 'story-map.html';
+    } catch (error) {
+      alert(error.message);
+    }
   });
 
   // Sign up form submit
-  signupForm.addEventListener('submit', (e) => {
+  signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('signup-username').value.trim();
     const email = document.getElementById('signup-email').value.trim();
@@ -49,9 +67,13 @@
       return;
     }
 
-    localStorage.setItem('ch_username', username);
-    localStorage.setItem('ch_email', email);
-    localStorage.setItem('ch_logged_in', 'true');
-    window.location.href = 'story-map.html';
+    try {
+      const result = await ApiClient.register({ username, email, password });
+      storeUser(result.user);
+      await loadProgressAfterAuth();
+      window.location.href = 'story-map.html';
+    } catch (error) {
+      alert(error.message);
+    }
   });
 })();

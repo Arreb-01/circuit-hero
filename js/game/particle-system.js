@@ -55,10 +55,11 @@ const ParticleSystem = (function() {
       if (pos) {
         if (points.length > 0) {
           var prev = points[points.length - 1];
-          points.push({ x: (prev.x + pos.x) / 2, y: prev.y });
-          points.push({ x: (prev.x + pos.x) / 2, y: pos.y });
+          var curve = WireGeometry.sampleBezier(prev, pos, 18);
+          points = points.concat(curve.slice(1));
+        } else {
+          points.push(pos);
         }
-        points.push(pos);
       }
     }
     return points;

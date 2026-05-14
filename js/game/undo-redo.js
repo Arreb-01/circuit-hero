@@ -43,8 +43,18 @@ const UndoRedo = (function() {
         DragDrop.updateStatus();
       }
     } else if (action.type === 'wire') {
-      // Re-create wire from stored data
-      // Wire IDs are unique so we need to track full wire data
+      if (action.wire) {
+        const wire = Wiring.createWire(
+          action.wire.fromUid,
+          action.wire.fromPortId,
+          action.wire.toUid,
+          action.wire.toPortId
+        );
+        if (wire) {
+          action.wireId = wire.id;
+          action.wire = Object.assign({}, wire);
+        }
+      }
     } else if (action.type === 'move') {
       const comp = Components.getByUid(action.uid);
       if (comp) {

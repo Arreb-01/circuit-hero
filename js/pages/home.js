@@ -36,4 +36,14 @@
       `;
     }
   }
+
+  const tryDemoLink = document.getElementById('tryDemoLink');
+  if (tryDemoLink) {
+    tryDemoLink.addEventListener('click', () => {
+      localStorage.setItem('ch_guest_mode', 'true');
+      if (!localStorage.getItem('ch_username')) {
+        localStorage.setItem('ch_username', 'Guest');
+      }
+    });
+  }
 })();

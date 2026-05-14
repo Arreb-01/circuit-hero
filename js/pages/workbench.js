@@ -5,6 +5,7 @@
   var params = new URLSearchParams(window.location.search);
   var levelId = params.get('level') || '1-1';
   var config = LevelConfig.get(levelId);
+  var isSandbox = config && config.mode === 'sandbox';
   var timerInterval = null;
   var startTime = Date.now();
   var powered = false;
@@ -30,9 +31,11 @@
       // Set back button link
       var backBtn = document.getElementById('backBtn');
       if (backBtn) {
-        backBtn.href = 'mission-briefing.html?chapter=' + config.chapter + '&level=' + config.id;
+        backBtn.href = isSandbox ? 'story-map.html' : 'mission-briefing.html?chapter=' + config.chapter + '&level=' + config.id;
       }
     }
+
+    if (isSandbox) setupSandboxUI();
 
     // Delay DragDrop init to ensure components are in DOM
     setTimeout(function() {
@@ -57,11 +60,16 @@
 
     // Start tutorial
     setTimeout(function() {
-      Tutorial.init(levelId);
+      if (!isSandbox) Tutorial.init(levelId);
     }, 600);
 
     // Timer
-    startTimer();
+    if (isSandbox) {
+      var display = document.getElementById('timerDisplay');
+      if (display) display.textContent = 'LAB';
+    } else {
+      startTimer();
+    }
 
     // Power button
     document.getElementById('powerBtn').addEventListener('click', onPowerOn);
@@ -110,24 +118,46 @@
         }
         var lockEl = item.querySelector('.comp-lock');
         if (lockEl) lockEl.remove();
-        // Show "NEW" badge for switch in 2-1
-        if (type === 'switch' && levelId === '2-1') {
-          var nameEl = item.querySelector('.comp-name');
-          if (nameEl) {
-            nameEl.style.opacity = '1';
-            nameEl.innerHTML = 'Switch <span style="color:#27AE60;font-size:10px;font-weight:700;">NEW!</span>';
+        if (type === 'switch') {
+          unlockSwitchItem(item);
+          if (levelId === '2-1') {
+            var nameEl = item.querySelector('.comp-name');
+            if (nameEl) {
+              nameEl.innerHTML = 'Switch <span style="color:#27AE60;font-size:10px;font-weight:700;">NEW!</span>';
+            }
           }
-          // Make icon fully visible
-          var iconSvg = item.querySelectorAll('svg [opacity]');
-          iconSvg.forEach(function(el) { el.setAttribute('opacity', '1'); });
         }
       }
     });
   }
 
+  function unlockSwitchItem(item) {
+    var nameEl = item.querySelector('.comp-name');
+    if (nameEl) nameEl.style.opacity = '1';
+    var iconSvg = item.querySelectorAll('svg [opacity]');
+    iconSvg.forEach(function(el) { el.setAttribute('opacity', '1'); });
+  }
+
+  function setupSandboxUI() {
+    var badge = document.getElementById('levelIdBadge');
+    if (badge) badge.textContent = 'LAB';
+    var hintBtn = document.getElementById('hintBtn');
+    if (hintBtn) hintBtn.style.display = 'none';
+    var starDisplay = document.getElementById('starDisplay');
+    if (starDisplay) starDisplay.style.display = 'none';
+    var statusText = document.getElementById('statusText');
+    if (statusText) statusText.textContent = 'Sandbox mode — build freely and power any complete circuit.';
+    var bottomRight = document.querySelector('.bottom-right .hint-text');
+    if (bottomRight) bottomRight.textContent = 'No stars, no timer — just experiment.';
+  }
+
   function startTimer() {
-    var stored = localStorage.getItem('ch_level_start');
-    if (stored) startTime = parseInt(stored);
+    var stored = ProgressStore.getLevelStart(levelId);
+    if (stored) {
+      startTime = stored;
+    } else {
+      ProgressStore.startLevelAttempt(levelId, startTime);
+    }
 
     var display = document.getElementById('timerDisplay');
     timerInterval = setInterval(function() {
@@ -147,12 +177,16 @@
     powered = !powered;
 
     // Notify tutorial system (advances step 5 if active)
-    Tutorial.onPowerClick();
+    if (!isSandbox) Tutorial.onPowerClick();
 
     if (powered) {
-      var result = CircuitEngine.evaluate();
+      var result = CircuitEngine.evaluate(config);
 
       if (result.status === 'closed') {
+        if (isSandbox) {
+          onSandboxPowered(result);
+          return;
+        }
         levelComplete = true;
         clearInterval(timerInterval);
         Feedback.hideSparky();
@@ -185,6 +219,19 @@
     }
   }
 
+  function onSandboxPowered(result) {
+    ParticleSystem.startFlow(result);
+    var litBulbs = result.bulbs || [result.bulb];
+    litBulbs.forEach(function(bulb) {
+      if (bulb) Components.setBulbLit(bulb.uid, true);
+    });
+    document.getElementById('powerBtn').classList.add('powered');
+    var statusDot = document.getElementById('statusDot');
+    var statusText = document.getElementById('statusText');
+    if (statusDot) statusDot.classList.add('connected');
+    if (statusText) statusText.textContent = 'Sandbox circuit powered. Change the wiring or press Power On again to stop.';
+  }
+
   function onKeyDown(e) {
     if (e.code === 'Space') {
       e.preventDefault();
@@ -205,9 +252,10 @@
   function onDelete() {
     // If a wire is selected, delete it
     var allWires = Wiring.getAll();
-    var selected = null;
-    for (var i = 0; i < allWires.length; i++) {
-      if (allWires[i]._selected) { selected = allWires[i]; break; }
+    var selectedId = Wiring.getSelectedWireId ? Wiring.getSelectedWireId() : null;
+    if (selectedId) {
+      Wiring.removeWire(selectedId);
+      return;
     }
     // Otherwise delete last wire
     if (allWires.length > 0) {
@@ -242,7 +290,8 @@
   }
 
   function onHint() {
-    localStorage.setItem('ch_used_hint', 'true');
+    if (isSandbox) return;
+    ProgressStore.markHintUsed(levelId);
     var hintText;
     if (levelId === '2-1') {
       var switches = Components.getByType('switch');

@@ -24,6 +24,15 @@
   var badgeEl = document.getElementById('cutsceneBadge');
   if (badgeEl) badgeEl.textContent = config.briefing.cutsceneBadge;
 
+  // Set cutscene image, fallback to the existing scene if a future asset is missing.
+  var imageEl = document.getElementById('cutsceneImage');
+  if (imageEl && config.briefing.sceneImage) {
+    imageEl.src = config.briefing.sceneImage;
+    imageEl.onerror = function() {
+      imageEl.src = 'assets/images/night-scene.png';
+    };
+  }
+
   // Set dialogue speaker
   var speakerEl = document.getElementById('dialogueSpeaker');
   if (speakerEl) speakerEl.textContent = config.briefing.dialogueSpeaker;
@@ -79,7 +88,7 @@
   startBtn.href = 'workbench.html?level=' + levelId;
   startBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    localStorage.setItem('ch_level_start', Date.now().toString());
+    ProgressStore.startLevelAttempt(levelId, Date.now());
     window.location.href = 'workbench.html?level=' + levelId;
   });
 })();

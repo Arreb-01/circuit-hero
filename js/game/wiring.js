@@ -71,7 +71,7 @@ const Wiring = (function() {
       // Complete the wire
       const wire = createWire(fromPort.uid, fromPort.portId, uid, portId);
       if (wire) {
-        UndoRedo.push({ type: 'wire', wireId: wire.id });
+        UndoRedo.push({ type: 'wire', wireId: wire.id, wire: Object.assign({}, wire) });
         document.dispatchEvent(new CustomEvent('circuit:wire-connected', {
           detail: { wire }
         }));
@@ -118,7 +118,7 @@ const Wiring = (function() {
       ctx.lineJoin = 'round';
       ctx.setLineDash([10, 6]);
       ctx.globalAlpha = 0.85;
-      drawLPath(ctx, fromPos.x, fromPos.y, localX, localY);
+      WireGeometry.drawBezier(ctx, fromPos, { x: localX, y: localY });
       ctx.stroke();
 
       // Draw a small circle at the mouse position as a "cursor"
@@ -242,19 +242,8 @@ const Wiring = (function() {
       var to = getPortPosition(wire.toUid, wire.toPortId);
       if (!from || !to) continue;
 
-      var midX = (from.x + to.x) / 2;
-      // L-path has 3 segments: horizontal, vertical, horizontal
-      var points = [
-        from,
-        { x: midX, y: from.y },
-        { x: midX, y: to.y },
-        to
-      ];
-
-      for (var j = 0; j < points.length - 1; j++) {
-        if (distToSegment(x, y, points[j].x, points[j].y, points[j + 1].x, points[j + 1].y) < threshold) {
-          return wire;
-        }
+      if (WireGeometry.distanceToBezier({ x: x, y: y }, from, to) < threshold) {
+        return wire;
       }
     }
     return null;
@@ -330,7 +319,7 @@ const Wiring = (function() {
 
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      drawLPath(ctx, from.x, from.y, to.x, to.y);
+      WireGeometry.drawBezier(ctx, from, to);
       ctx.stroke();
 
       // Draw small dots at endpoints
@@ -348,20 +337,14 @@ const Wiring = (function() {
     });
   }
 
-  function drawLPath(ctx, x1, y1, x2, y2) {
-    var midX = (x1 + x2) / 2;
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(midX, y1);
-    ctx.lineTo(midX, y2);
-    ctx.lineTo(x2, y2);
-  }
-
   function updateWiresForComponent(uid) {
     updatePortStates();
     drawAll();
   }
 
   function getAll() { return wires; }
+
+  function getSelectedWireId() { return selectedWireId; }
 
   function clearAll() {
     wires = [];
@@ -378,5 +361,5 @@ const Wiring = (function() {
     });
   }
 
-  return { init, createWire, removeWire, getAll, clearAll, drawAll, updateWiresForComponent, getPortPosition, getPortConnections, cancelDraw };
+  return { init, createWire, removeWire, getAll, clearAll, drawAll, updateWiresForComponent, getPortPosition, getPortConnections, getSelectedWireId, cancelDraw };
 })();

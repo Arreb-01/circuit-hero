@@ -6,8 +6,12 @@ const DragDrop = (function() {
   let currentMoveComp = null;
   let dragStartPos = null;
   let didMove = false;
+  let levelConfig = null;
 
   function init() {
+    var params = new URLSearchParams(window.location.search);
+    var levelId = params.get('level') || '1-1';
+    levelConfig = typeof LevelConfig !== 'undefined' ? LevelConfig.get(levelId) : null;
     // Panel item drag start
     document.querySelectorAll('.component-item[draggable="true"]').forEach(item => {
       item.addEventListener('mousedown', onPanelDragStart);
@@ -31,10 +35,7 @@ const DragDrop = (function() {
     const def = Components.getDef(dragType);
     if (!def) return;
 
-    // Check if battery is already placed
-    if (dragType === 'battery' && Components.getByType('battery').length > 0) return;
-    if (dragType === 'bulb' && Components.getByType('bulb').length > 0) return;
-    if (dragType === 'switch' && Components.getByType('switch').length > 0) return;
+    if (hasReachedLimit(dragType)) return;
 
     isDragging = true;
     const pos = getEventPos(e);
@@ -172,6 +173,16 @@ const DragDrop = (function() {
       e.preventDefault();
       startMove(comp, e);
     });
+  }
+
+  function hasReachedLimit(type) {
+    if (!levelConfig || !levelConfig.workbench || !levelConfig.workbench.partsPanel) {
+      return Components.getByType(type).length > 0;
+    }
+
+    var part = levelConfig.workbench.partsPanel[type];
+    if (!part || part.count === Infinity) return false;
+    return Components.getByType(type).length >= part.count;
   }
 
   function getEventPos(e) {

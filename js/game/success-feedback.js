@@ -37,18 +37,34 @@ const Feedback = (function() {
     ParticleSystem.startFlow(result);
 
     // Light up the bulb
-    Components.setBulbLit(result.bulb.uid, true);
+    var litBulbs = result.bulbs || [result.bulb];
+    litBulbs.forEach(function(bulb) {
+      if (bulb) Components.setBulbLit(bulb.uid, true);
+    });
 
     // Calculate stars
-    var stars = 1;
-    var usedHint = localStorage.getItem('ch_used_hint') === 'true';
-    if (!usedHint) stars = 2;
-    if (!usedHint && elapsed <= 120) stars = 3;
-
     // Get level config for dynamic content
     var urlParams = new URLSearchParams(window.location.search);
     var levelId = urlParams.get('level') || '1-1';
     var config = LevelConfig.get(levelId);
+    var targetTime = config ? config.briefing.threeStarTime : 120;
+    var usedHint = ProgressStore.hasUsedHint(levelId);
+    var stars = ProgressStore.calculateStars({
+      elapsed: elapsed,
+      usedHint: usedHint,
+      targetTime: targetTime
+    });
+
+    ProgressStore.completeLevel(levelId, {
+      stars: stars,
+      elapsed: elapsed,
+      usedHint: usedHint
+    });
+    ProgressStore.syncLevelToRemote(levelId, {
+      stars: stars,
+      elapsed: elapsed,
+      usedHint: usedHint
+    });
 
     // Show success modal after a delay
     setTimeout(function() {
