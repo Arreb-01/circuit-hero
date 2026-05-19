@@ -14,14 +14,11 @@ node_modules/
 *.pem
 *.key
 
-# Logs and debug output
+# Logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# OS / editor noise
+# OS artifacts
 .DS_Store
 Thumbs.db
 Desktop.ini
@@ -33,18 +30,11 @@ dist/
 build/
 coverage/
 .cache/
-.parcel-cache/
 
-# Generated local review artifacts
-docs/prd-extracted.txt
-docs/functional-gap-audit.md
-docs/site-evaluation-and-skills.md
-
-# Local source documents not needed for runtime
-Circuit Hero — 产品需求文档 (PRD) 副本.pdf
-
-# Browser test artifacts
+# Test artifacts
 test-results/
 playwright-report/
 screenshots/
-*.png.tmp
+
+# Claude Code
+.claude/

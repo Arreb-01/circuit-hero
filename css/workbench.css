@@ -155,6 +155,10 @@
   cursor: not-allowed;
 }
 
+.component-item.locked .comp-name {
+  opacity: 0.5;
+}
+
 .component-item.highlight {
   border-color: var(--color-gold);
   box-shadow: 0 0 12px rgba(255,215,0,0.4);
@@ -446,10 +450,13 @@
   box-shadow: 0 0 20px rgba(255,215,0,0.2);
   max-width: 600px;
   z-index: 10;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .sparky-bubble.hidden {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .sparky-avatar {
@@ -531,6 +538,7 @@
 
 /* Bottom Bar */
 .bottom-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -542,6 +550,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+}
+
+.bottom-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .status-dot {
@@ -563,13 +581,13 @@
 .power-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--color-text-primary);
   color: white;
-  padding: 0 28px;
-  height: 56px;
-  font-size: 16px;
-  font-weight: 900;
+  padding: 0 20px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 700;
   border-radius: var(--radius-lg);
   border: none;
   box-shadow: var(--shadow-btn);
@@ -607,6 +625,7 @@
 .hint-text {
   font-size: var(--fs-body-xs);
   color: var(--color-text-secondary);
+  margin-left: auto;
 }
 
 /* Success Modal */
@@ -773,4 +792,30 @@
 .switch-state-label {
   user-select: none;
   pointer-events: none;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .panel-left { width: 180px; }
+  .panel-right { width: 150px; }
+  .top-bar { height: 56px; padding: 10px 0; }
+  .timer-pill { padding: 6px 12px; }
+  .timer-text { font-size: 20px; }
+}
+
+@media (max-width: 768px) {
+  .panel-left { width: 60px; }
+  .panel-right { width: 50px; }
+  .comp-name, .comp-count, .panel-title, .panel-label,
+  .tool-btn span:first-of-type, .tool-btn .kbd,
+  .hint-cost, .level-name-text { display: none; }
+  .comp-icon { width: 32px; height: 32px; }
+  .component-item { padding: 6px; justify-content: center; }
+  .tool-btn { padding: 8px; justify-content: center; }
+  .top-bar { height: 48px; padding: 8px 0; }
+  .hint-btn span:first-of-type { display: none; }
+  .bottom-left, .bottom-right { min-width: 0; }
+  .status-text { font-size: 12px; }
+  .hint-text { font-size: 11px; }
+  .sparky-bubble { max-width: 90%; font-size: 13px; padding: 10px 14px; }
 }

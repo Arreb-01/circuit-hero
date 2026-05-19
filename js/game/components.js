@@ -73,17 +73,25 @@ const Components = (function() {
     return DEFS[type];
   }
 
-  function create(type, col, row) {
+  function create(type, col, row, options) {
     const def = DEFS[type];
     if (!def) return null;
+    options = options || {};
+    var uid = options.uid || 'comp_' + nextId++;
+    if (options.uid) {
+      var match = options.uid.match(/^comp_(\d+)$/);
+      if (match) {
+        nextId = Math.max(nextId, parseInt(match[1], 10) + 1);
+      }
+    }
     const comp = {
-      uid: 'comp_' + nextId++,
+      uid: uid,
       type: type,
       def: def,
       col: col,
       row: row,
       element: null,
-      switchClosed: false
+      switchClosed: !!options.switchClosed
     };
     placedComponents.push(comp);
     return comp;

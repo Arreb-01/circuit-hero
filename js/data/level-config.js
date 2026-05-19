@@ -67,7 +67,7 @@ const LevelConfig = (function() {
           switch: { count: 1, locked: false }
         }
       },
-      circuitGoal: { type: 'closed', requiredBulbs: 1 },
+      circuitGoal: { type: 'closed', requiredBulbs: 1, requiredSwitches: 1 },
       tutorialMode: 'hints',
       success: {
         dialogue: "Now you can control the light! Flip the switch on and off. Luna loves it!",
@@ -92,7 +92,7 @@ const LevelConfig = (function() {
         dialogueSpeaker: 'SPARKY . REPAIR ASSISTANT',
         dialogueText: 'The workshop sign has two dim bulbs. Can you wire both bulbs in one complete path?',
         goalText: 'Build a series circuit so current flows through two bulbs in one loop.',
-        availableParts: ['Battery x1', 'Bulb x2', 'Wire (unlimited)'],
+        availableParts: ['Battery x1', 'Bulb x2', 'Switch x1', 'Wire (unlimited)'],
         tipText: 'In a series circuit, current has only one path and must pass through both bulbs.',
         threeStarTime: 150
       },
@@ -104,7 +104,7 @@ const LevelConfig = (function() {
           battery: { count: 1, locked: false },
           bulb: { count: 2, locked: false },
           wire: { count: Infinity, locked: false },
-          switch: { count: 0, locked: true }
+          switch: { count: 1, locked: false }
         }
       },
       circuitGoal: { type: 'series', requiredBulbs: 2 },
@@ -132,7 +132,7 @@ const LevelConfig = (function() {
         dialogueSpeaker: 'LUNA . FESTIVAL HELPER',
         dialogueText: 'The festival lanterns need separate branches. Can both lights connect across the battery?',
         goalText: 'Build a parallel circuit with two bulbs on separate branches.',
-        availableParts: ['Battery x1', 'Bulb x2', 'Wire (unlimited)'],
+        availableParts: ['Battery x1', 'Bulb x2', 'Switch x1', 'Wire (unlimited)'],
         tipText: 'In a parallel circuit, each bulb has its own path between the battery terminals.',
         threeStarTime: 180
       },
@@ -146,7 +146,7 @@ const LevelConfig = (function() {
           battery: { count: 1, locked: false },
           bulb: { count: 2, locked: false },
           wire: { count: Infinity, locked: false },
-          switch: { count: 0, locked: true }
+          switch: { count: 1, locked: false }
         }
       },
       circuitGoal: { type: 'parallel', requiredBulbs: 2 },
@@ -164,6 +164,87 @@ const LevelConfig = (function() {
         knowledgeMotto: 'Parallel means separate branches sharing the same source.'
       }
     },
+    '5-1': {
+      id: '5-1',
+      chapter: 5,
+      title: 'House Wiring',
+      briefing: {
+        cutsceneBadge: 'CH.05 . SCENE 01 . LIVING ROOM',
+        sceneImage: 'assets/images/living-room.png',
+        dialogueSpeaker: 'LUNA . HOMEOWNER',
+        dialogueText: "Circuit Town's home wiring needs help. Can you wire the living room lights independently and keep the hallway controlled by the whole living room circuit?",
+        goalText: 'Build a mixed circuit: two living-room bulbs in parallel, each with its own switch, plus one hallway bulb in series with that living-room section.',
+        availableParts: ['Battery x1', 'Bulb x3', 'Switch x3 (2 room switches + 1 master)', 'Wire (unlimited)'],
+        tipText: 'The two living-room lights should work independently. The hallway light turns on only when the living-room circuit is active, and the master switch can turn everything off.',
+        threeStarTime: 240
+      },
+      workbench: {
+        prePlace: [
+          { type: 'battery', colRatio: 0.15, rowRatio: 0.5 }
+        ],
+        partsPanel: {
+          battery: { count: 1, locked: false },
+          bulb: { count: 3, locked: false },
+          wire: { count: Infinity, locked: false },
+          switch: { count: 3, locked: false }
+        }
+      },
+      circuitGoal: { type: 'houseWiring', requiredBulbs: 3, requiredSwitches: 3 },
+      tutorialMode: 'hints',
+      success: {
+        dialogue: "Perfect wiring! The two living-room lights can work independently, the hallway follows the active room circuit, and the master switch controls the whole home.",
+        knowledgeTitle: 'Knowledge: Mixed Series-Parallel Circuits',
+        knowledgeItems: [
+          'Parallel branches let the two living-room lights work independently',
+          'Each living-room branch needs its own switch',
+          'The hallway bulb is in series with the living-room section',
+          'A master switch in series can shut down every light',
+          'Mixed circuits combine independent branches with shared control'
+        ],
+        knowledgeMotto: 'Mixed wiring means parallel branches plus shared series control.'
+      }
+    },
+    '6-1': {
+      id: '6-1',
+      chapter: 6,
+      title: 'The Dark Theater',
+      briefing: {
+        cutsceneBadge: 'CH.06 . SCENE 01 . THEATER',
+        sceneImage: 'assets/images/theater.png',
+        dialogueSpeaker: 'LUNA . THEATER MANAGER',
+        dialogueText: "The theater lighting system is down. Rebuild it so the stage lights work as one group and the audience lights stay independently controlled.",
+        goalText: 'Build a hierarchical circuit: three stage spotlights in series, two audience lights in parallel with their own switches, and one master switch before everything.',
+        availableParts: ['Battery x1', 'Bulb x5', 'Switch x3 (2 audience switches + 1 master)', 'Wire (unlimited)'],
+        tipText: 'Stage lights must turn on and off together. Audience lights need separate switches, but the master switch must control every light.',
+        threeStarTime: 300
+      },
+      workbench: {
+        prePlace: [
+          { type: 'battery', colRatio: 0.1, rowRatio: 0.5 }
+        ],
+        partsPanel: {
+          battery: { count: 1, locked: false },
+          bulb: { count: 5, locked: false },
+          wire: { count: Infinity, locked: false },
+          switch: { count: 3, locked: false }
+        }
+      },
+      circuitGoal: { type: 'theaterWiring', requiredBulbs: 5, requiredSwitches: 3 },
+      tutorialMode: 'hints',
+      success: {
+        dialogue: "Bravo! The stage spotlights work together, the audience lights can be controlled separately, and the master switch shuts down the whole theater.",
+        knowledgeTitle: 'Knowledge: Hierarchical Circuit Control',
+        knowledgeItems: [
+          'A master switch gives one control point for the whole system',
+          'Series stage lights must operate as one group',
+          'Parallel audience branches allow independent control',
+          'Audience lights should not stay on when the master switch is off',
+          'Layered control combines whole-system and branch-level switching'
+        ],
+        knowledgeMotto: 'Master switch, group wiring, and branch switches make a hierarchy.'
+      }
+    },
+
     'sandbox': {
       id: 'sandbox',
       mode: 'sandbox',
@@ -175,10 +256,10 @@ const LevelConfig = (function() {
           { type: 'battery', colRatio: 0.2, rowRatio: 0.5 }
         ],
         partsPanel: {
-          battery: { count: 1, locked: false },
-          bulb: { count: 3, locked: false },
+          battery: { count: Infinity, locked: false },
+          bulb: { count: Infinity, locked: false },
           wire: { count: Infinity, locked: false },
-          switch: { count: 2, locked: false }
+          switch: { count: Infinity, locked: false }
         }
       },
       circuitGoal: { type: 'closed', requiredBulbs: 1 },

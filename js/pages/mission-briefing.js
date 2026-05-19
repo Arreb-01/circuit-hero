@@ -91,4 +91,10 @@
     ProgressStore.startLevelAttempt(levelId, Date.now());
     window.location.href = 'workbench.html?level=' + levelId;
   });
+
+  if (window.OnboardingGuide && levelId === '1-1') {
+    setTimeout(function() {
+      OnboardingGuide.init('mission');
+    }, 1200);
+  }
 })();

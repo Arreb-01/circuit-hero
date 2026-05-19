@@ -10,6 +10,10 @@
   var startTime = Date.now();
   var powered = false;
   var levelComplete = false;
+  var restoredDesign = false;
+  var notificationTimeout = null;
+  var SAVED_DESIGNS_KEY = 'circuitHeroSandboxDesigns';
+  var SHARE_DESIGN_PARAM = 'design';
 
   function init() {
     // Initialize all subsystems
@@ -35,15 +39,18 @@
       }
     }
 
-    if (isSandbox) setupSandboxUI();
+    if (isSandbox) {
+      setupSandboxUI();
+      restoreSandboxDesign();
+    }
 
     // Delay DragDrop init to ensure components are in DOM
     setTimeout(function() {
       DragDrop.init();
     }, 100);
 
-    // Pre-place components from config
-    if (config && config.workbench.prePlace) {
+    // Pre-place components from config only when no saved/shared sandbox design is restored
+    if (config && config.workbench.prePlace && !restoredDesign) {
       var stageGrid = document.getElementById('stageGrid');
       setTimeout(function() {
         var cols = Grid.getCols();
@@ -55,13 +62,26 @@
             DragDrop.setupComponentDrag(comp);
           }
         });
+        updatePartsBadges();
       }, 200);
     }
 
     // Start tutorial
     setTimeout(function() {
-      if (!isSandbox) Tutorial.init(levelId);
+      if (isSandbox) return;
+      if (window.OnboardingGuide && OnboardingGuide.shouldDelayWorkbenchTutorial(levelId)) return;
+      Tutorial.init(levelId);
     }, 600);
+
+    document.addEventListener('onboarding:workbench-ready', function() {
+      if (!isSandbox && levelId === '1-1') Tutorial.init(levelId);
+    }, { once: true });
+
+    if (window.OnboardingGuide && levelId === '1-1') {
+      setTimeout(function() {
+        OnboardingGuide.init('workbench');
+      }, 700);
+    }
 
     // Timer
     if (isSandbox) {
@@ -85,6 +105,23 @@
 
     // Hint button
     document.getElementById('hintBtn').addEventListener('click', onHint);
+
+    // Update parts badges when components change
+    document.addEventListener('circuit:component-placed', function() { updatePartsBadges(); });
+    document.addEventListener('circuit:wire-connected', function() { updatePartsBadges(); });
+
+    // Sandbox save/share controls
+    var saveDesignBtn = document.getElementById('saveDesignBtn');
+    if (saveDesignBtn) saveDesignBtn.addEventListener('click', function() {
+      saveDesign();
+      updateLoadButtonState();
+    });
+    var shareLinkBtn = document.getElementById('shareLinkBtn');
+    if (shareLinkBtn) shareLinkBtn.addEventListener('click', shareDesign);
+    var loadDesignBtn = document.getElementById('loadDesignBtn');
+    if (loadDesignBtn) loadDesignBtn.addEventListener('click', function() {
+      showLoadDesignModal();
+    });
 
     // Help close
     document.getElementById('helpClose').addEventListener('click', function() {
@@ -138,6 +175,21 @@
     iconSvg.forEach(function(el) { el.setAttribute('opacity', '1'); });
   }
 
+  function updatePartsBadges() {
+    if (!config || !config.workbench.partsPanel) return;
+    Object.keys(config.workbench.partsPanel).forEach(function(type) {
+      var partConfig = config.workbench.partsPanel[type];
+      if (partConfig.locked || partConfig.count === Infinity) return;
+      var item = document.querySelector('.component-item[data-type="' + type + '"]');
+      if (!item) return;
+      var countEl = item.querySelector('.comp-count');
+      if (!countEl) return;
+      var placed = Components.getByType(type).length;
+      var remaining = partConfig.count - placed;
+      countEl.textContent = remaining <= 0 ? 'x0' : 'x' + remaining;
+    });
+  }
+
   function setupSandboxUI() {
     var badge = document.getElementById('levelIdBadge');
     if (badge) badge.textContent = 'LAB';
@@ -149,6 +201,339 @@
     if (statusText) statusText.textContent = 'Sandbox mode — build freely and power any complete circuit.';
     var bottomRight = document.querySelector('.bottom-right .hint-text');
     if (bottomRight) bottomRight.textContent = 'No stars, no timer — just experiment.';
+
+    var saveDesignBtn = document.getElementById('saveDesignBtn');
+    if (saveDesignBtn) saveDesignBtn.classList.remove('sandbox-only');
+    var shareLinkBtn = document.getElementById('shareLinkBtn');
+    if (shareLinkBtn) shareLinkBtn.classList.remove('sandbox-only');
+    updateLoadButtonState();
+  }
+
+  function updateLoadButtonState() {
+    var loadDesignBtn = document.getElementById('loadDesignBtn');
+    if (!loadDesignBtn) return;
+    if (isSandbox) {
+      loadDesignBtn.classList.remove('sandbox-only');
+    } else {
+      loadDesignBtn.classList.add('sandbox-only');
+    }
+  }
+
+  function getAllSavedDesigns() {
+    try {
+      var raw = window.localStorage.getItem(SAVED_DESIGNS_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveSandboxDesignWithName(name) {
+    if (!isSandbox) return false;
+    if (!name || name.trim().length === 0) return false;
+    var designState = getSandboxDesignState();
+    var designs = getAllSavedDesigns();
+    var newDesign = {
+      id: 'design_' + Date.now(),
+      name: name.trim(),
+      timestamp: Date.now(),
+      state: designState
+    };
+    designs.push(newDesign);
+    try {
+      window.localStorage.setItem(SAVED_DESIGNS_KEY, JSON.stringify(designs));
+      updateLoadButtonState();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function deleteSandboxDesign(id) {
+    var designs = getAllSavedDesigns();
+    var idx = designs.findIndex(function(d) { return d.id === id; });
+    if (idx >= 0) {
+      designs.splice(idx, 1);
+      try {
+        window.localStorage.setItem(SAVED_DESIGNS_KEY, JSON.stringify(designs));
+        updateLoadButtonState();
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  function showLoadDesignModal() {
+    if (!isSandbox) return;
+    var designs = getAllSavedDesigns();
+    if (designs.length === 0) {
+      showNotification('No saved designs yet.');
+      return;
+    }
+
+    var modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '9999';
+    modal.innerHTML = '<div class="modal-card" style="width:400px;max-height:60vh;overflow-y:auto;">' +
+      '<div class="modal-header" style="padding:20px;border-bottom:1px solid #ccc;">' +
+      '<h2 style="margin:0;font-size:18px;">Saved Designs</h2>' +
+      '</div>' +
+      '<div class="modal-body" style="padding:15px;" id="designsList"></div>' +
+      '<div class="modal-footer" style="padding:15px;border-top:1px solid #ccc;text-align:right;">' +
+      '<button class="btn btn-secondary" style="cursor:pointer;">Close</button>' +
+      '</div>' +
+      '</div>';
+
+    var designsList = modal.querySelector('#designsList');
+    designs.forEach(function(design, idx) {
+      var item = document.createElement('div');
+      item.style.cssText = 'margin-bottom:12px;padding:12px;background:#f5f5f5;border-radius:4px;border-left:3px solid #FF8C42;';
+      var date = new Date(design.timestamp);
+      var dateStr = date.toLocaleString();
+      item.innerHTML = '<div style="font-weight:700;margin-bottom:4px;">' + design.name + '</div>' +
+        '<div style="font-size:12px;color:#666;margin-bottom:8px;">' + dateStr + '</div>' +
+        '<button class="load-design-btn" data-id="' + design.id + '" style="cursor:pointer;margin-right:8px;padding:6px 12px;background:#27AE60;color:white;border:none;border-radius:3px;">Load</button>' +
+        '<button class="delete-design-btn" data-id="' + design.id + '" style="cursor:pointer;padding:6px 12px;background:#E74C3C;color:white;border:none;border-radius:3px;">Delete</button>';
+      designsList.appendChild(item);
+    });
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('.btn-secondary').addEventListener('click', function() {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.remove();
+      }
+      if (e.target.classList.contains('load-design-btn')) {
+        var id = e.target.getAttribute('data-id');
+        var designs = getAllSavedDesigns();
+        var design = designs.find(function(d) { return d.id === id; });
+        if (design && design.state) {
+          loadSandboxDesignState(design.state, 'Design "' + design.name + '" loaded!');
+          modal.remove();
+        }
+      }
+      if (e.target.classList.contains('delete-design-btn')) {
+        var id = e.target.getAttribute('data-id');
+        if (confirm('Delete this design?')) {
+          if (deleteSandboxDesign(id)) {
+            showNotification('Design deleted.');
+            modal.remove();
+            showLoadDesignModal();
+          }
+        }
+      }
+    });
+  }
+
+  function loadSavedDesign() {
+    if (!isSandbox) return false;
+    var designs = getAllSavedDesigns();
+    if (designs.length === 0) {
+      showNotification('No saved design found.');
+      return false;
+    }
+    var lastDesign = designs[designs.length - 1];
+    if (loadSandboxDesignState(lastDesign.state, 'Latest design loaded!')) {
+      return true;
+    }
+    showNotification('Failed to load saved design.');
+    return false;
+  }
+
+  function showNotification(message, duration) {
+    if (notificationTimeout) {
+      clearTimeout(notificationTimeout);
+      notificationTimeout = null;
+    }
+    var statusText = document.getElementById('statusText');
+    if (!statusText) return;
+    var original = statusText.textContent;
+    statusText.textContent = message;
+    notificationTimeout = setTimeout(function() {
+      statusText.textContent = original;
+      notificationTimeout = null;
+    }, duration || 2500);
+  }
+
+  function getSandboxDesignState() {
+    return {
+      timestamp: Date.now(),
+      components: Components.getAll().map(function(comp) {
+        return {
+          uid: comp.uid,
+          type: comp.type,
+          col: comp.col,
+          row: comp.row,
+          switchClosed: comp.type === 'switch' ? !!comp.switchClosed : undefined
+        };
+      }),
+      wires: Wiring.getAll().map(function(wire) {
+        return {
+          id: wire.id,
+          fromUid: wire.fromUid,
+          fromPortId: wire.fromPortId,
+          toUid: wire.toUid,
+          toPortId: wire.toPortId
+        };
+      })
+    };
+  }
+
+  function loadSandboxDesignState(state, message) {
+    if (!state || !Array.isArray(state.components)) return false;
+    Components.clearAll();
+    Wiring.clearAll();
+    ParticleSystem.stop();
+    Feedback.hideSparky();
+
+    state.components.forEach(function(item) {
+      var comp = Components.create(item.type, item.col, item.row, {
+        uid: item.uid,
+        switchClosed: item.switchClosed
+      });
+      if (comp) {
+        Components.renderToDOM(comp);
+        DragDrop.setupComponentDrag(comp);
+        if (comp.type === 'switch') {
+          Components.setSwitchState(comp.uid, !!item.switchClosed);
+        }
+      }
+    });
+
+    if (Array.isArray(state.wires)) {
+      state.wires.forEach(function(wire) {
+        if (wire.fromUid && wire.toUid && wire.fromPortId && wire.toPortId) {
+          Wiring.createWire(wire.fromUid, wire.fromPortId, wire.toUid, wire.toPortId, wire.id);
+        }
+      });
+    }
+
+    Wiring.drawAll();
+    DragDrop.updateStatus();
+    restoredDesign = true;
+    if (message) showNotification(message);
+    return true;
+  }
+
+  function getDesignFromLocalStorage() {
+    try {
+      var raw = window.localStorage.getItem(SAVED_DESIGNS_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[parsed.length - 1].state || null;
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function getDesignFromShareUrl() {
+    var params = new URLSearchParams(window.location.search);
+    var encoded = params.get(SHARE_DESIGN_PARAM);
+    if (!encoded) return null;
+    try {
+      var decoded = decodeURIComponent(atob(encoded));
+      return JSON.parse(decoded);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function restoreSandboxDesign() {
+    if (!isSandbox) return;
+    var sharedDesign = getDesignFromShareUrl();
+    if (sharedDesign && loadSandboxDesignState(sharedDesign, 'Shared design loaded!')) {
+      return;
+    }
+    var designs = getAllSavedDesigns();
+    if (designs.length > 0) {
+      var lastDesign = designs[designs.length - 1];
+      if (lastDesign.state) {
+        loadSandboxDesignState(lastDesign.state, 'Design "' + lastDesign.name + '" restored.');
+      }
+    }
+  }
+
+  function saveDesign() {
+    if (!isSandbox) return;
+    var name = prompt('Give this design a name:');
+    if (name === null) return;
+    if (saveSandboxDesignWithName(name)) {
+      showNotification('Design "' + name + '" saved!');
+    } else {
+      showNotification('Save failed.');
+    }
+  }
+
+  function shareDesign() {
+    if (!isSandbox) return;
+    var design = getSandboxDesignState();
+    var payload = JSON.stringify(design);
+    var encoded = btoa(encodeURIComponent(payload));
+    var shareUrl = window.location.origin + window.location.pathname + '?level=sandbox&' + SHARE_DESIGN_PARAM + '=' + encodeURIComponent(encoded);
+    
+    var modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '9999';
+    modal.innerHTML = '<div class="modal-card" style="width:500px;max-width:90vw;">' +
+      '<div class="modal-header" style="padding:20px;border-bottom:1px solid #ccc;">' +
+      '<h2 style="margin:0;font-size:18px;">Share Your Design</h2>' +
+      '</div>' +
+      '<div class="modal-body" style="padding:20px;">' +
+      '<p style="margin:0 0 12px 0;font-size:14px;color:#666;">Copy this link to share your design with others:</p>' +
+      '<textarea readonly style="width:100%;height:80px;padding:10px;font-family:monospace;font-size:12px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;" id="shareUrlInput"></textarea>' +
+      '</div>' +
+      '<div class="modal-footer" style="padding:15px;border-top:1px solid #ccc;text-align:right;display:flex;gap:10px;justify-content:flex-end;">' +
+      '<button class="btn btn-secondary" style="cursor:pointer;padding:8px 16px;">Close</button>' +
+      '<button class="btn btn-cta" id="copyBtn" style="cursor:pointer;padding:8px 16px;">Copy Link</button>' +
+      '</div>' +
+      '</div>';
+    
+    var textarea = modal.querySelector('#shareUrlInput');
+    textarea.value = shareUrl;
+    
+    var copyBtn = modal.querySelector('#copyBtn');
+    var closeBtn = modal.querySelector('.btn-secondary');
+    
+    copyBtn.addEventListener('click', function() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          showNotification('Link copied to clipboard!');
+          copyBtn.textContent = 'Copied!';
+          setTimeout(function() { copyBtn.textContent = 'Copy Link'; }, 1500);
+        }).catch(function() {
+          textarea.select();
+          document.execCommand('copy');
+          showNotification('Link copied!');
+        });
+      } else {
+        textarea.select();
+        document.execCommand('copy');
+        showNotification('Link copied!');
+      }
+    });
+    
+    closeBtn.addEventListener('click', function() {
+      modal.remove();
+    });
+    
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+    
+    document.body.appendChild(modal);
   }
 
   function startTimer() {
@@ -293,7 +678,9 @@
     if (isSandbox) return;
     ProgressStore.markHintUsed(levelId);
     var hintText;
-    if (levelId === '2-1') {
+    if (levelId === '1-1') {
+      hintText = 'Connect Battery(+) → Bulb → Battery(-). Click the red port, then a bulb port, then the other bulb port back to the black port!';
+    } else if (levelId === '2-1') {
       var switches = Components.getByType('switch');
       if (switches.length === 0) {
         hintText = 'Drag the Switch from the parts panel onto the board, then wire it into the circuit in series!';
@@ -305,8 +692,16 @@
           hintText = 'Make sure wires connect: Battery(+) → Switch → Bulb → Battery(-). Every port needs a wire!';
         }
       }
+    } else if (levelId === '3-1') {
+      hintText = 'In a series circuit, ALL bulbs are on the SAME path. Connect: Battery(+) → Bulb1 → Bulb2 → Battery(-). No branches!';
+    } else if (levelId === '4-1') {
+      hintText = 'In a parallel circuit, each bulb has its OWN path back to the battery. Connect Battery(+) to both bulbs separately, and both bulbs back to Battery(-).';
+    } else if (levelId === '5-1') {
+      hintText = 'You need 3 switches: one master switch controls everything, and each room has its own switch. The hallway bulb stays on as long as the master is on.';
+    } else if (levelId === '6-1') {
+      hintText = 'The theater needs: 1 master switch for all lights, 3 stage lights in series, and 2 audience lights each with its own switch.';
     } else {
-      hintText = 'Make sure current flows from the battery (+), through the bulb, and back to (-). Each port needs a wire connected!';
+      hintText = 'Make sure current flows from the battery (+), through all required components, and back to (-). Each port needs a wire connected!';
     }
     Feedback.showSparky(hintText, 'Got it!');
   }

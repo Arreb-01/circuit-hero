@@ -46,4 +46,8 @@
       }
     });
   }
+
+  if (window.OnboardingGuide) {
+    OnboardingGuide.init('home');
+  }
 })();

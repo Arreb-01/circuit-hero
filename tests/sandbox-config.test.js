@@ -13,9 +13,9 @@ const sandbox = LevelConfig.get('sandbox');
 assert.ok(sandbox, 'sandbox config should exist');
 assert.strictEqual(sandbox.mode, 'sandbox');
 assert.strictEqual(sandbox.scoring, false);
-assert.strictEqual(sandbox.workbench.partsPanel.battery.count, 1);
-assert.ok(sandbox.workbench.partsPanel.bulb.count >= 3);
-assert.ok(sandbox.workbench.partsPanel.switch.count >= 2);
+assert.strictEqual(sandbox.workbench.partsPanel.battery.count, Infinity);
+assert.strictEqual(sandbox.workbench.partsPanel.bulb.count, Infinity);
+assert.strictEqual(sandbox.workbench.partsPanel.switch.count, Infinity);
 assert.strictEqual(sandbox.workbench.partsPanel.wire.count, Infinity);
 
 console.log('sandbox-config tests passed');

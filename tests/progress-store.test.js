@@ -35,7 +35,9 @@ loadScript('js/data/progress-store.js', context);
 const { LevelConfig, ProgressStore } = vm.runInContext('({ LevelConfig, ProgressStore })', context);
 
 assert.strictEqual(LevelConfig.has('1-1'), true, 'existing levels should be discoverable');
-assert.strictEqual(LevelConfig.has('5-1'), false, 'missing levels should not be treated as playable');
+assert.strictEqual(LevelConfig.has('5-1'), true, 'configured advanced levels should be discoverable');
+assert.strictEqual(LevelConfig.has('6-1'), true, 'configured final levels should be discoverable');
+assert.strictEqual(LevelConfig.has('7-1'), false, 'missing levels should not be treated as playable');
 
 const storage = createStorage();
 

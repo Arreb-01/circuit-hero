@@ -317,6 +317,14 @@
   line-height: 1.5;
 }
 
+.objective-text-small {
+  font-size: 13px;
+}
+
+.objective-stars {
+  margin: 8px 0;
+}
+
 .component-pills {
   display: flex;
   flex-wrap: wrap;
@@ -373,4 +381,20 @@
 #startBtn {
   height: 54px;
   padding: 0 28px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .cutscene { height: 320px; }
+  .objectives-card { flex-direction: column; }
+  .dialogue-box { height: auto; min-height: 70px; }
+}
+
+@media (max-width: 768px) {
+  .briefing-main { padding: 16px 0 60px; gap: 12px; }
+  .cutscene { height: 220px; border-radius: 12px; }
+  .dialogue-box { flex-direction: column; gap: 8px; padding: 12px; }
+  .dialogue-pointer { display: none; }
+  .objectives-card { padding: 14px 16px; }
+  .action-bar { flex-direction: column; gap: 10px; align-items: stretch; }
 }

@@ -143,8 +143,8 @@ const Wiring = (function() {
 
   function onDrawEnd(e) {
     if (drawing && !e.target.closest('.port')) {
-      // Don't cancel on mouseup during drawing — only cancel on Escape or clicking same port
-      // This allows the user to click and release without accidentally canceling
+      // Cancel drawing when clicking on blank area (not a port)
+      cancelDraw();
     }
   }
 
@@ -170,14 +170,20 @@ const Wiring = (function() {
     };
   }
 
-  function createWire(fromUid, fromPortId, toUid, toPortId) {
+  function createWire(fromUid, fromPortId, toUid, toPortId, customId) {
     const exists = wires.find(function(w) {
       return (w.fromUid === fromUid && w.fromPortId === fromPortId && w.toUid === toUid && w.toPortId === toPortId) ||
              (w.fromUid === toUid && w.fromPortId === toPortId && w.toUid === fromUid && w.toPortId === fromPortId);
     });
     if (exists) return null;
 
-    var id = 'wire_' + nextId++;
+    var id = customId || 'wire_' + nextId++;
+    if (customId) {
+      var match = customId.match(/^wire_(\d+)$/);
+      if (match) {
+        nextId = Math.max(nextId, parseInt(match[1], 10) + 1);
+      }
+    }
     var wire = { id: id, fromUid: fromUid, fromPortId: fromPortId, toUid: toUid, toPortId: toPortId };
     wires.push(wire);
     updatePortStates();
@@ -247,17 +253,6 @@ const Wiring = (function() {
       }
     }
     return null;
-  }
-
-  function distToSegment(px, py, x1, y1, x2, y2) {
-    var dx = x2 - x1;
-    var dy = y2 - y1;
-    var lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
-    var t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
-    var projX = x1 + t * dx;
-    var projY = y1 + t * dy;
-    return Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
   }
 
   function updatePortStates() {

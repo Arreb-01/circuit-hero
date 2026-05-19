@@ -86,3 +86,30 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* Full-height page (workbench) */
+.page-content-fullheight {
+  height: 100vh;
+}
+
+/* Image fill utility */
+.img-fill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-contain {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.icon-flip {
+  transform: scaleX(-1);
+}
+
+/* Sandbox-only buttons */
+.sandbox-only {
+  display: none;
+}

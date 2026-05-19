@@ -8,8 +8,6 @@ const Tutorial = (function() {
   function init(levelId) {
     if (levelId === '1-1') {
       initFullTutorial();
-    } else if (levelId === '2-1') {
-      initHintsMode();
     }
   }
 
@@ -53,16 +51,6 @@ const Tutorial = (function() {
 
     // Start first step after a delay to let everything render
     setTimeout(function() { advance(); }, 800);
-  }
-
-  function initHintsMode() {
-    active = true;
-    setTimeout(function() {
-      Feedback.showSparky(
-        'New part: the Switch! Drag it onto the board. Click a placed switch to toggle it open or closed. Wire it into the circuit, close it, and power on!',
-        'Got it!'
-      );
-    }, 800);
   }
 
   function advance() {

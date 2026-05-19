@@ -24,23 +24,47 @@
     var levels = progress && progress.levels ? progress.levels : {};
     document.querySelectorAll('.chapter-node').forEach(function(node) {
       var chapter = node.dataset.chapter;
-      var levelId = chapter + '-1';
+      var chapterNum = Number(chapter);
+      var levelId = chapter + '-1'; // 每个章节的首个关卡ID（如1-1、2-1）
       var levelProgress = levels[levelId];
       var stars = levelProgress && levelProgress.completed ? levelProgress.stars : 0;
       var available = LevelConfig.has(levelId);
 
+      // 重置所有状态类
       node.classList.remove('completed', 'current', 'unlocked', 'locked');
+
+      // 核心解锁规则
       if (!available) {
+        // 关卡配置不存在 → 锁定
         node.classList.add('locked');
       } else if (levelProgress && levelProgress.completed) {
+        // 当前章节已通关 → 标记为completed
         node.classList.add('completed');
-      } else if (chapter === '1' || levels[(Number(chapter) - 1) + '-1']) {
-        node.classList.add(chapter === '1' ? 'current' : 'unlocked');
       } else {
-        node.classList.add('locked');
+        // 判断是否解锁：章节1默认解锁；章节N>1 需前一章（N-1）的首个关卡已通关
+        var isUnlocked = false;
+        if (chapterNum === 1) {
+          // 章节1默认解锁（初始为current）
+          isUnlocked = true;
+        } else {
+          // 章节N>1：检查前一章（N-1）的首个关卡是否已通关
+          var prevChapterLevelId = (chapterNum - 1) + '-1';
+          var prevChapterProgress = levels[prevChapterLevelId];
+          isUnlocked = prevChapterProgress && prevChapterProgress.completed;
+        }
+
+        if (isUnlocked) {
+          // 解锁但未通关：章节1标记为current，其他章节标记为unlocked
+          node.classList.add(chapterNum === 1 ? 'current' : 'unlocked');
+        } else {
+          // 未解锁 → 锁定
+          node.classList.add('locked');
+        }
       }
 
-      renderStars(node.querySelector('.node-stars'), stars);
+      // 渲染星星（锁定状态强制显示0颗亮星，即3颗暗星）
+      var finalStars = node.classList.contains('locked') ? 0 : stars;
+      renderStars(node.querySelector('.node-stars'), finalStars);
     });
   }
 
